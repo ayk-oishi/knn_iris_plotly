@@ -26,9 +26,9 @@ app.layout = html.Div(children=[
     html.Div([
         html.Div([
             html.Div([
-                html.H6('Petal Length'),
+                html.H6("Child's Weight"),
                 dcc.Slider(
-                    id='petal-length',
+                    id='weight',
                     min=1,
                     max=8,
                     step=0.1,
@@ -38,9 +38,9 @@ app.layout = html.Div(children=[
                 html.Br(),
             ], className='six columns'),
             html.Div([
-                html.H6('Petal Width'),
+                html.H6("Child's Age"),
                 dcc.Slider(
-                    id='petal-width',
+                    id='age',
                     min=0.1,
                     max=3,
                     step=0.1,
@@ -60,7 +60,7 @@ app.layout = html.Div(children=[
         ], className='twelve columns'),
 
     html.Br(),
-    html.A('Code on Github', href='https://github.com/austinlasseter/knn_iris_plotly'),
+    html.A('Code on Github', href='https://github.com/ayk-oishi/knn_iris_plotly'),
     ])
 ])
 
@@ -69,20 +69,20 @@ app.layout = html.Div(children=[
 
 # Message callback
 @app.callback(Output('message', 'children'),
-              [Input('petal-length', 'value'),
-               Input('petal-width', 'value')])
+              [Input('weight', 'value'),
+               Input('age', 'value')])
 def radio_results(val0, val1):
     new_observation0=[[val0, val1]]
     prediction=model.predict(new_observation0)
-    specieslist=['setosa/red', 'versicolor/blue', 'virginica/yellow']
+    specieslist=['under-weight/red', 'nice-weight/blue', 'over-weight/yellow']
     species =prediction[0]
-    return f'The predicted species is {specieslist[species]}'
+    return f'This child is {specieslist[species]}'
 
 
 # Figure callback
 @app.callback(Output('figure-1', 'figure'),
-              [Input('petal-length', 'value'),
-               Input('petal-width', 'value')])
+              [Input('weight', 'value'),
+               Input('age', 'value')])
 def display_figure(val0, val1):
     ########## Make a prediction & find its neighbors
     new_observation0=[[val0, val1]]
@@ -130,8 +130,8 @@ def display_figure(val0, val1):
 
     layout = go.Layout(
         title = 'K-Nearest Neighbors', # Graph title
-        xaxis = dict(title = 'Petal Length'), # x-axis label
-        yaxis = dict(title = 'Petal Width'), # y-axis label
+        xaxis = dict(title = "Child's Weight"), # x-axis label
+        yaxis = dict(title = "Child's age"), # y-axis label
         hovermode ='closest' # handles multiple points landing on the same vertical
     )
     fig = go.Figure(data=data, layout=layout)
