@@ -1,157 +1,174 @@
-import dash
-import dash_core_components as dcc
-import dash_html_components as html
-import plotly.graph_objs as go
-from dash.dependencies import Input, Output, State
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[65]:
+
+
 import pandas as pd
-import pickle
+import seaborn as sns
+import numpy as np
+import matplotlib.pyplot as plt
+get_ipython().run_line_magic('matplotlib', 'inline')
+
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer, TfidfVectorizer
+from sklearn.model_selection import cross_val_score
+from sklearn.metrics import classification_report
+from sklearn.naive_bayes import MultinomialNB, BernoulliNB, GaussianNB
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn import metrics
+from sklearn.metrics import classification_report,confusion_matrix,accuracy_score
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier, BaggingClassifier
+from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import GridSearchCV
+sns.set_style("darkgrid")
 
 
-########### Initiate the app
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
-server = app.server
-app.title='knn'
-
-########### Read in the model and dataset ######
-file = open('resources/final_model.pkl', 'rb')
-model=pickle.load(file)
-file.close()
-train=pd.read_pickle('resources/train.pkl')
-
-########### Set up the layout
-
-app.layout = html.Div(children=[
-    html.H1('K-Nearest Neighbors'),
-    html.Div([
-        html.Div([
-            html.Div([
-                html.H6("Child's Weight"),
-                dcc.Slider(
-                    id='weight',
-                    min=1,
-                    max=8,
-                    step=0.1,
-                    marks={i:str(i) for i in range(1, 9)},
-                    value=5
-                ),
-                html.Br(),
-            ], className='six columns'),
-            html.Div([
-                html.H6("Child's Age"),
-                dcc.Slider(
-                    id='age',
-                    min=0.1,
-                    max=3,
-                    step=0.1,
-                    marks={i:str(i) for i in range(0, 4)},
-                    value=1.3,
-                ),
-                html.Br(),
-            ], className='six columns'),
-            html.Br(),
-        ], className='twelve columns'),
-        html.Div([
-            html.H6(id='message'),
-            dcc.Graph(
-                id='figure-1'
-            ),
-
-        ], className='twelve columns'),
-
-    html.Br(),
-    html.A('Code on Github', href='https://github.com/ayk-oishi/knn_iris_plotly'),
-    ])
-])
-
-######### Define Callbacks
+# In[106]:
 
 
-# Message callback
-@app.callback(Output('message', 'children'),
-              [Input('weight', 'value'),
-               Input('age', 'value')])
-def radio_results(val0, val1):
-    new_observation0=[[val0, val1]]
-    prediction=model.predict(new_observation0)
-    specieslist=['under-weight/red', 'nice-weight/blue', 'over-weight/yellow']
-    species =prediction[0]
-    return f'This child is {specieslist[species]}'
+df= pd.read_csv('../../data/pax_20_02_2018_1_CSV.csv')
 
 
-# Figure callback
-@app.callback(Output('figure-1', 'figure'),
-              [Input('weight', 'value'),
-               Input('age', 'value')])
-def display_figure(val0, val1):
-    ########## Make a prediction & find its neighbors
-    new_observation0=[[val0, val1]]
-    prediction=model.predict(new_observation0)
-    neighbors=list(model.kneighbors(new_observation0)[1][0])
-    df_neighbors=train.iloc[neighbors, :]
-
-    brights = ['red', 'blue', 'yellow', 'white'] # https://www.canva.com/learn/100-color-combinations/
-
-    trace1 = go.Scatter(
-        x = train['pl'],
-        y = train['pw'],
-        mode = 'markers',
-        marker=dict(
-            color=train['species'],
-            colorscale=brights[:3],)
-    )
-    trace0 = go.Scatter(
-        x = df_neighbors['pl'],
-        y = df_neighbors['pw'],
-        mode = 'markers',
-        marker=dict(
-            size=12,
-            color=brights[3],
-            line=dict(
-                color='darkblue',
-                width=1.5),
-        )
-    )
-    trace2 = go.Scatter(
-        x = [new_observation0[0][0]],
-        y = [new_observation0[0][1]],
-        mode = 'markers',
-        marker=dict(
-            size=12,
-            color='lightgreen',
-            symbol = 'pentagon',
-            line=dict(
-                color='darkblue',
-                width=1.5),
-        )
-    )
-
-    data=[trace0, trace1, trace2]
-
-    layout = go.Layout(
-        title = 'K-Nearest Neighbors', # Graph title
-        xaxis = dict(title = "Child's Weight"), # x-axis label
-        yaxis = dict(title = "Child's age"), # y-axis label
-        hovermode ='closest' # handles multiple points landing on the same vertical
-    )
-    fig = go.Figure(data=data, layout=layout)
-    fig.update_xaxes(tick0=3, dtick=1)
-    fig.update_yaxes(tick0=3, dtick=1)
-    fig.update_layout(
-        showlegend=False,
-    #     width = 800,
-    #     height = 800,
-        yaxis = dict(
-          scaleanchor = "x",
-          scaleratio = 1,
-        )
-    )
-    return fig
+# In[107]:
 
 
+df.isnull().sum()
+
+
+# In[112]:
+
+
+df= df.drop(['ThrdPart','OthAgr','StageSub','Part'], axis=1)
+
+
+# In[113]:
+
+
+df.isnull().sum()
+
+
+# In[114]:
+
+
+df['Imp']=df['Stage'].map({'Pre ':0,'SubPar':0,'Imp':1,'Cea':0,'SubComp':0,'Ren':0, 'Oth':0})
+df.head()
+df.dropna(inplace=True)
+
+
+# In[115]:
+
+
+df.shape
+
+
+# In[116]:
+
+
+df.dtypes
+
+
+# In[119]:
+
+
+X=df.drop(['Con','Contp', 'Reg', 'AgtId', 'Agt','Dat', 'Status', 'Agtp', 'Stage','Imp'], axis=1)
+
+
+# In[120]:
+
+
+y = df['Imp'].copy()
+
+
+# In[121]:
+
+
+X
+
+
+# In[123]:
+
+
+df.dtypes
+
+
+# In[124]:
+
+
+X_train, X_test, y_train, y_test= train_test_split(X,y, test_size=.1, random_state=42)
+X_train.shape
+
+
+# In[125]:
+
+
+X.dropna(inplace=True)
+
+
+# In[126]:
+
+
+y.value_counts()
+
+
+# In[127]:
+
+
+rf=RandomForestClassifier()
+rf.fit(X_train, y_train)
+
+
+# In[128]:
+
+
+y_train.isnull().sum()
+
+
+# In[129]:
+
+
+len(y_train)
+
+
+# In[130]:
+
+
+y.dropna
+
+
+# In[131]:
+
+
+print(len(X.columns))
+print(X.columns)
+importances = rf.feature_importances_
+
+
+# In[132]:
+
+
+#List the features by importance
+feat_imp = pd.DataFrame(importances, index=X_test.columns, columns=['importance'])
+feat_imp['importance'].sort_values(ascending=False)
+
+
+# In[133]:
+
+
+sns.set(style="darkgrid", color_codes=None)
+# sns.palplot(sns.color_palette("RdBu", n_colors=7))
+ax = top10.plot(kind='bar', legend=False, fontsize=18,  figsize=(15, 7))
+plt.xticks(rotation = 45,  fontsize=18)
+plt.title('Most Important Predictors',  fontsize=19)
+plt.yticks(rotation = 0,  fontsize=18)
+plt.ylabel('Feature Importance', rotation=90,  fontsize=18)
+plt.savefig('feature_import.png', dpi=300, bbox_inches='tight') 
+
+
+# In[ ]:
 
 
 
-############ Deploy
-if __name__ == '__main__':
-    app.run_server()
+
